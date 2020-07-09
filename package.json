@@ -1,0 +1,57 @@
+{
+  "name": "webcam-recorder",
+  "version": "1.0.0",
+  "description": "Stream live web cam video and audio to mp4 files",
+  "main": "babel-node index.js",
+  "scripts": {
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "rm -rf ./build/server && ./node_modules/.bin/babel ./src/server -d ./build/server --source-maps",
+    "build:client": "rm -rf ./build/client && ./node_modules/.bin/babel ./src/client -d ./build/client",
+    "start": "node ./build/server/index.js",
+    "dev": "npm run build && npm start",
+    "lint": "./node_modules/.bin/eslint ./src"
+  },
+  "engines": {
+    "node": "12.18.2",
+    "npm": "6.14.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChristianRich/webcam-recorder.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ChristianRich/webcam-recorder/issues"
+  },
+  "homepage": "https://github.com/ChristianRich/webcam-recorder#readme",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.5.0",
+    "@babel/core": "^7.5.0",
+    "@babel/plugin-proposal-async-generator-functions": "^7.2.0",
+    "@babel/polyfill": "^7.4.4",
+    "@babel/preset-env": "^7.5.0",
+    "@babel/preset-stage-3": "^7.0.0",
+    "@babel/register": "^7.4.4",
+    "babel-eslint": "^7.2.3",
+    "babel-plugin-minify-simplify": "^0.5.1",
+    "babel-preset-minify": "^0.5.1",
+    "babel-runtime": "^6.26.0",
+    "eslint": "^6.0.1",
+    "eslint-config-prettier": "^6.0.0",
+    "eslint-html-reporter": "^0.5.2",
+    "eslint-plugin-import": "^2.6.0",
+    "eslint-plugin-prettier": "^3.1.0",
+    "prettier": "^1.18.2"
+  },
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "body-parser": "^1.17.2",
+    "bytes": "^3.1.0",
+    "express": "^4.15.3",
+    "lodash": "^4.17.11",
+    "numeral": "^2.0.6",
+    "qs": "^6.7.0",
+    "shelljs": "^0.8.4",
+    "websocket": "^1.0.31"
+  }
+}
