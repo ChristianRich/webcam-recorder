@@ -8,18 +8,16 @@ const webcamRecorder = () => {
   };
 
   const UI =
-    '   <div id="websnatch" ' +
-    '     style="position: absolute; top: 0; left: 0; z-index: 9999; background-color: grey; width: 400px; height: 100px;"  ' +
-    '   >  ' +
-    '     <div style="margin: 10px;">  ' +
-    '       <div class="wcs-info" style="padding-bottom: 10px;">  ' +
-    '         stripchat.com.mia_sense.2020-07-08T04:38:49.webm  ' +
-    '       </div>  ' +
-    '       <button class="wcs-btn-rec" disabled>Record</button>  ' +
-    '       <button class="wcs-btn-stop" disabled>Stop</button>  ' +
-    '     </div>  ' +
-    '   </div>  ' +
-    '    ';
+    '<div' +
+    '  style="position: fixed; bottom: 0; left: 0; z-index: 99999; background-color: #323bad; width: 400px; height: 100px;"' +
+    '>' +
+    '  <div style="margin: 10px;">' +
+    '    <p>Webcam Recorder</p>' +
+    '    <div class="wcs-info" style="padding-bottom: 10px;"></div>' +
+    '    <button class="wcs-btn-rec" disabled>Record</button>' +
+    '    <button class="wcs-btn-stop" disabled>Stop</button>' +
+    '  </div>' +
+    '</div>';
 
   const getOptions = () => {
     let options = { mimeType: 'video/webm;codecs=vp9,opus' };
@@ -44,7 +42,7 @@ const webcamRecorder = () => {
 
   const wireUpUI = () => {
     const body = document.querySelector('body');
-    const existingUI = body.querySelector('#websnatch');
+    const existingUI = body.querySelector('#webcam-recorder-322f3fde');
     if (existingUI) body.removeChild(existingUI);
     body.insertAdjacentHTML('beforeend', UI);
 
@@ -59,6 +57,14 @@ const webcamRecorder = () => {
         btnRec.disabled = true;
         btnStop.disabled = false;
         state.recording = true;
+
+        socket.send(
+          JSON.stringify({
+            type: 'CREATE_FILE',
+            data: getFilename(),
+          }),
+        );
+
         mediaRecorder.start(0);
       };
 
@@ -104,25 +110,15 @@ const webcamRecorder = () => {
     socket = new window.WebSocket('ws://localhost:1337');
 
     socket.onopen = () => {
-      console.log('onopen');
-
-      socket.send(
-        JSON.stringify({
-          type: 'CREATE_FILE',
-          data: getFilename(),
-        }),
-      );
-
       document.querySelector('.wcs-info').innerHTML = getFilename();
       document.querySelector('.wcs-btn-rec').disabled = false;
     };
 
-    socket.onerror = () => {
-      console.log('onerror');
+    socket.onerror = e => {
+      console.log(e);
     };
 
     socket.onclose = () => {
-      console.log('onclose');
       document.querySelector('.wcs-btn-rec').disabled = true;
       document.querySelector('.wcs-info').innerHTML = 'Socket closed';
       setTimeout(initSocket, 2000);

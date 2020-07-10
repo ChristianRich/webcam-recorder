@@ -8,7 +8,7 @@
     "build:server": "rm -rf ./build/server && ./node_modules/.bin/babel ./src/server -d ./build/server --source-maps",
     "build:client": "rm -rf ./build/client && ./node_modules/.bin/babel ./src/client -d ./build/client",
     "start": "node ./build/server/index.js",
-    "dev": "npm run build && npm start",
+    "dev": "npm run build:server && npm start",
     "lint": "./node_modules/.bin/eslint ./src"
   },
   "engines": {
