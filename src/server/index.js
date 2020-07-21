@@ -10,69 +10,64 @@ import numeral from 'numeral';
 const destDir = `${process.cwd()}/capture`;
 const tmpDir = `${process.cwd()}/capture/tmp`;
 
-let file;
-let filename;
-let logStream;
+let filename; // wihtout ext
+let file; // filename with .webm ext
+let writeStream;
 let idx;
 let startDate;
 
+const CREATE_FILE = 'CREATE_FILE';
+const STOP_RECORDING = 'STOP_RECORDING';
+
 const createFolders = () => {
-  if (!fs.existsSync(destDir)) {
-    console.log(`Create ${destDir}`);
-    fs.mkdirSync(destDir);
-  }
-  if (!fs.existsSync(tmpDir)) {
-    console.log(`Create ${tmpDir}`);
-    fs.mkdirSync(tmpDir);
-  }
+  if (!fs.existsSync(destDir)) fs.mkdirSync(destDir);
+  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir);
 };
 
 const createCaptureStream = fn => {
   filename = fn;
   file = `${tmpDir}/${filename}.webm`;
 
-  if (logStream) {
-    logStream.end();
+  if (writeStream) {
+    writeStream.end();
   }
 
-  logStream = fs.createWriteStream(file, {
+  writeStream = fs.createWriteStream(file, {
     flags: 'a',
     encoding: 'utf8',
   });
 
-  console.log(`CREATE_FILE ${file}`);
+  console.log(`${CREATE_FILE} ${file}`);
   idx = setInterval(printStats, 1000);
 };
 
-const streamChunk = data => {
-  if (!logStream) {
-    return;
-  }
-
-  if (logStream.writable) {
-    logStream.write(data);
-  }
-
-  if (!startDate) {
-    startDate = new Date();
+const writeToStream = data => {
+  if (writeStream && writeStream.writable && data && data.length) {
+    if (!startDate) startDate = new Date();
+    writeStream.write(data);
   }
 };
 
 const processResult = async () => {
-  console.log('STOP_RECORDING');
+  console.log(STOP_RECORDING);
   clearInterval(idx);
-  if (logStream) {
-    logStream.end();
-    logStream = null;
+  if (writeStream) {
+    writeStream.end();
+    writeStream = null;
     startDate = null;
-    await convertFile(filename);
+    await convertFile(
+      `${tmpDir}/${filename}.webm`,
+      `${destDir}/${filename}.mp4`,
+    );
   }
 };
 
 const createSocket = () => {
+  const PORT = process.env.PORT || 1337;
+
   // https://github.com/theturtle32/WebSocket-Node/blob/master/docs/WebSocketServer.md#server-config-options
   const socket = new server({
-    httpServer: http.createServer().listen(process.env.PORT || 1337),
+    httpServer: http.createServer().listen(PORT),
     maxReceivedFrameSize: bytes('512KB'), // 64KB
     maxReceivedMessageSize: bytes('1024MB'),
     fragmentationThreshold: bytes('16KB'),
@@ -81,7 +76,7 @@ const createSocket = () => {
     closeTimeout: 10000,
   });
 
-  console.log('ws://localhost:1337 is waiting for connections');
+  console.log(`ws://localhost:${PORT} is waiting for connections`);
 
   socket.on('request', request => {
     const connection = request.accept(null, request.origin);
@@ -92,16 +87,16 @@ const createSocket = () => {
           var { type, data } = JSON.parse(message.utf8Data);
 
           switch (type) {
-            case 'CREATE_FILE':
+            case CREATE_FILE:
               createCaptureStream(data);
               break;
-            case 'STOP_RECORDING':
+            case STOP_RECORDING:
               processResult();
               break;
           }
           break;
         case 'binary':
-          streamChunk(message.binaryData);
+          writeToStream(message.binaryData);
           break;
         default:
       }
@@ -113,10 +108,9 @@ const createSocket = () => {
         console.log('connection closed', closeReason, description);
         clearInterval(idx);
 
-        if (logStream) {
-          logStream.end();
-          logStream = null;
-          // await convertFile(filename);
+        if (writeStream) {
+          writeStream.end();
+          writeStream = null;
         }
       },
     );
@@ -131,6 +125,22 @@ const createSocket = () => {
   });
 };
 
+const getElapsedTime = (startDate, operationName) => {
+  if (!startDate) {
+    return 0;
+  }
+
+  const duration = numeral(
+    (new Date().getTime() - startDate.getTime()) / 1000,
+  ).format('00:00:00');
+
+  if (typeof operationName === 'string') {
+    return `${operationName} completed ${duration}`;
+  }
+
+  return duration;
+};
+
 const printStats = () => {
   let elapsed = 0;
 
@@ -139,14 +149,19 @@ const printStats = () => {
     elapsed = numeral(diff / 1000).format('00:00:00');
   }
 
-  if (logStream && logStream.bytesWritten > 0) {
+  if (writeStream && writeStream.bytesWritten > 0) {
     console.log(
-      `${filename}, size: ${bytes(logStream.bytesWritten)}, time: ${elapsed}`,
+      `${filename}, size: ${bytes(writeStream.bytesWritten)}, time: ${elapsed}`,
     );
   }
 };
 
-const convertFile = (filename, targetExt = 'mp4') => {
+const convertFile = (
+  target,
+  dest,
+  deleteTargetAfterProcessing = true,
+  start = new Date(),
+) => {
   const ffmpeg = shell.exec('which ffmpeg');
 
   if (!ffmpeg || !ffmpeg.length) {
@@ -155,19 +170,19 @@ const convertFile = (filename, targetExt = 'mp4') => {
     );
   }
 
-  const file = `${tmpDir}/${filename}`;
-  const destFile = `${destDir}/${filename}`;
+  console.log(`Converting ${target} to mp4`);
 
-  // https://www.reddit.com/r/ffmpeg/comments/efvzhv/very_very_slow_encoding_speeds/
-  // ffmpeg -i input.webm -c:v libx264 -preset ultrafast -crf 23 output.mp4
   shell.exec(
-    `ffmpeg -i ${file}.webm ${destFile}.${targetExt} -y`,
+    `ffmpeg -loglevel warning -i ${target} ${dest} -y`,
     (code, stdout, stderr) => {
+      console.log(getElapsedTime(start, 'video conversion'));
       if (code !== 0) {
         console.log(stderr);
+        fs.unlinkSync(dest);
       } else {
-        fs.unlinkSync(`${file}.webm`);
-        console.log('webm to mp4 file conversion complete');
+        if (deleteTargetAfterProcessing === true) {
+          fs.unlinkSync(target);
+        }
       }
     },
   );

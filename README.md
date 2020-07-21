@@ -37,14 +37,18 @@ npm start
 First, build the code `npm run build`.
 Start the server with `npm start` and let it wait for incoming web socket connections.
 
-Go into the folder `/build/client` and copy the contents of the index file into Google Chromes console.
-You should now see a userinterface in the top left corner with a "Record" and a "Stop" button.
+Go into the folder `/build/client` and copy the contents of the index file into Google Chrome console.
+You should now see a user interface in the bottom left corner with a "Record" and a "Stop" button.
 
-When you pree "Record" the client will start streaming video blobs into a Node socket server and stream it to a file.
+When you press "Record" the client will start streaming video blobs into a Node socket server and stream it to a file.
 
 When you press "Stop" the recorder will stop and attempt to convert the webm file into an mp4 using ffmpeg.
 If ffmpeg is not present on the system, the conversion is skipped and you're left with the webm file.
 
 ## TODO
 
+- Allow the user to set a max recording time in the UI
+- Display hh:mm:ss recorded in the UI
+- Add a close button to the UI which will unregister the component and close the socket
+- Add cancel button to UI which will delete the video from disk
 - Create a Google Chrome extension for the client script

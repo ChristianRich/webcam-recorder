@@ -1,10 +1,12 @@
-const webcamRecorder = () => {
+(() => {
   let socket;
   let mediaRecorder;
+  let btnRec;
+  let btnStop;
+  let info;
 
-  const state = {
-    recording: false,
-    filename: '',
+  const showMessage = message => {
+    info.innerHTML = message;
   };
 
   const UI =
@@ -43,48 +45,53 @@ const webcamRecorder = () => {
   const wireUpUI = () => {
     const body = document.querySelector('body');
     const existingUI = body.querySelector('#webcam-recorder-322f3fde');
-    if (existingUI) body.removeChild(existingUI);
+
+    if (existingUI) {
+      body.removeChild(existingUI);
+    }
+
     body.insertAdjacentHTML('beforeend', UI);
 
-    const btnRec = document.querySelector('.wcs-btn-rec');
-    const btnStop = document.querySelector('.wcs-btn-stop');
-    const info = document.querySelector('.wcs-info');
+    btnRec = document.querySelector('.wcs-btn-rec');
+    btnStop = document.querySelector('.wcs-btn-stop');
+    info = document.querySelector('.wcs-info');
 
-    if (hasCapabilities()) {
-      info.innerHTML = 'Waiting for socket..';
+    if (!hasCapabilities()) {
+      showMessage('MediaRecorder API not supported or no video on page');
+      return;
+    }
 
-      btnRec.onclick = () => {
-        btnRec.disabled = true;
-        btnStop.disabled = false;
-        state.recording = true;
+    showMessage('Waiting for socket..');
 
+    btnRec.onclick = () => {
+      initRecorder();
+
+      if (mediaRecorder) {
         socket.send(
           JSON.stringify({
             type: 'CREATE_FILE',
             data: getFilename(),
           }),
         );
-
         mediaRecorder.start(0);
-      };
+        btnRec.disabled = true;
+        btnStop.disabled = false;
+      }
+    };
 
-      btnStop.onclick = () => {
-        btnRec.disabled = false;
-        btnStop.disabled = true;
-        state.recording = false;
+    btnStop.onclick = () => {
+      btnRec.disabled = false;
+      btnStop.disabled = true;
 
-        socket.send(
-          JSON.stringify({
-            type: 'STOP_RECORDING',
-            data: null,
-          }),
-        );
+      socket.send(
+        JSON.stringify({
+          type: 'STOP_RECORDING',
+          data: null,
+        }),
+      );
 
-        mediaRecorder.stop();
-      };
-    } else {
-      info.innerHTML = 'Not supported';
-    }
+      if (mediaRecorder) mediaRecorder.stop();
+    };
   };
 
   const hasCapabilities = () => {
@@ -93,8 +100,26 @@ const webcamRecorder = () => {
 
   const initRecorder = () => {
     const video = document.querySelector('video');
+
+    if (!video) {
+      showMessage('Error: No video in page');
+      mediaRecorder = null;
+      return;
+    }
+
     const stream = video.captureStream();
     const options = getOptions();
+
+    if (mediaRecorder) {
+      try {
+        if (mediaRecorder.readyState !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        mediaRecorder.ondataavailable = null;
+      } catch (e) {
+        //
+      }
+    }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder/MediaRecorder
     mediaRecorder = new window.MediaRecorder(stream, options);
@@ -141,6 +166,4 @@ const webcamRecorder = () => {
     initRecorder();
     initSocket();
   }
-};
-
-webcamRecorder();
+})();

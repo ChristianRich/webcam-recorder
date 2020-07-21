@@ -5,10 +5,12 @@
   "main": "babel-node index.js",
   "scripts": {
     "build": "npm run build:server && npm run build:client",
+    "ffmpeg": "node ./node_modules/@babel/node/bin/babel-node.js ./src/server/ffmpeg.js",
+    "clean:tmp": "node ./node_modules/@babel/node/bin/babel-node.js ./src/server/cleanTmp.js",
     "build:server": "rm -rf ./build/server && ./node_modules/.bin/babel ./src/server -d ./build/server --source-maps",
     "build:client": "rm -rf ./build/client && ./node_modules/.bin/babel ./src/client -d ./build/client",
     "start": "node ./build/server/index.js",
-    "dev": "npm run build:server && npm start",
+    "dev": "npm run build:server && npm run clean:tmp && npm start",
     "lint": "./node_modules/.bin/eslint ./src"
   },
   "engines": {
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@babel/cli": "^7.5.0",
     "@babel/core": "^7.5.0",
+    "@babel/node": "^7.10.4",
     "@babel/plugin-proposal-async-generator-functions": "^7.2.0",
     "@babel/polyfill": "^7.4.4",
     "@babel/preset-env": "^7.5.0",
