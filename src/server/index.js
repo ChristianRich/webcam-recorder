@@ -51,14 +51,18 @@ const writeToStream = data => {
 const processResult = async () => {
   console.log(STOP_RECORDING);
   clearInterval(idx);
+
   if (writeStream) {
     writeStream.end();
+
+    if (writeStream.bytesWritten === 0) {
+      fs.unlinkSync(`${tmpDir}/${filename}.webm`);
+    } else {
+      convertFile(`${tmpDir}/${filename}.webm`, `${destDir}/${filename}.mp4`);
+    }
+
     writeStream = null;
     startDate = null;
-    await convertFile(
-      `${tmpDir}/${filename}.webm`,
-      `${destDir}/${filename}.mp4`,
-    );
   }
 };
 

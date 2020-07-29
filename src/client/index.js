@@ -1,9 +1,13 @@
+import VideoSelector from './videoSelector';
+
 (() => {
   let socket;
   let mediaRecorder;
   let btnRec;
   let btnStop;
   let info;
+
+  const videoSelector = new VideoSelector();
 
   const showMessage = message => {
     info.innerHTML = message;
@@ -73,9 +77,9 @@
             data: getFilename(),
           }),
         );
-        mediaRecorder.start(0);
         btnRec.disabled = true;
         btnStop.disabled = false;
+        mediaRecorder.start(0);
       }
     };
 
@@ -99,7 +103,7 @@
   };
 
   const initRecorder = () => {
-    const video = document.querySelector('video');
+    const video = videoSelector.getCurrentVideoTarget();
 
     if (!video) {
       showMessage('Error: No video in page');

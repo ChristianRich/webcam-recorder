@@ -44,3 +44,4 @@ jspm_packages
 coverage
 build
 capture
+.DS_Store
